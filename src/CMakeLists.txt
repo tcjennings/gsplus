@@ -263,3 +263,5 @@ if (APPLE)
 		USES_TERMINAL)
 	add_dependencies(setuid vmnet_helper)
 endif()
+
+configure_file(search_paths.h.in search_paths.h)

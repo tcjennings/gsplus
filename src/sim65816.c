@@ -15,6 +15,7 @@
 #include "glog.h"
 #include "options.h"
 #include "version.h"
+#include "search_paths.h"
 
 extern const char *g_config_gsplus_name_list[];
 extern char g_config_gsplus_screenshot_dir[];
@@ -40,22 +41,6 @@ int g_speed_fast;       // OG Expose fast parameter
 int g_initialized = 0;          // OG To know if the emulator has finalized its initialization
 int g_accept_events = 0;     // OG To know if the emulator is ready to accept external events
 char g_argv0_path[256] = "./";
-
-const char *g_gsplus_default_paths[] = { // probably overkill on the paths
-  "",
-  "./",
-  "${HOME}/",
-  "${PWD}/",
-  "${HOME}/Library/GSplus/",
-  "/usr/local/lib/",
-  "/usr/lib/gsplus/",
-  "/usr/local/gsplus/",
-  "/usr/local/lib/gsplus/",
-  "/usr/share/gsplus/",
-  "/var/lib/",
-  "${0}/",
-  0
-};
 
 #define MAX_EVENTS      64
 

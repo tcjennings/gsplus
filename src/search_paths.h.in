@@ -1,0 +1,24 @@
+/*
+   GSPLUS - Advanced Apple IIGS Emulator Environment
+   Based on the KEGS emulator written by Kent Dickey
+   See COPYRIGHT.txt for Copyright information
+   See LICENSE.txt for license (GPL v2)
+ */
+
+const char *g_gsplus_default_paths[] = { // probably overkill on the paths
+  "",
+  "./",
+  "${HOME}/",
+  "${PWD}/",
+  "${HOME}/Library/GSplus/",
+  "@CMAKE_INSTALL_PREFIX@/etc/",
+  "@CMAKE_INSTALL_PREFIX@/etc/gsplus/",
+  "@CMAKE_INSTALL_PREFIX@/bin/",
+  "@CMAKE_INSTALL_PREFIX@/lib/",
+  "@CMAKE_INSTALL_PREFIX@/lib/gsplus/",
+  "/usr/lib/gsplus/",
+  "/usr/share/gsplus/",
+  "/var/lib/",
+  "${0}/",
+  0
+};
