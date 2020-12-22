@@ -160,7 +160,7 @@ int g_config_gsplus_auto_update = 1;
 int g_config_gsplus_update_needed = 0;
 
 const char *g_config_gsplus_name_list[] = {
-  "config.txt", "config.gsp", ".config.gsp",0
+  "config.txt", "config.gsp", ".config.gsp", "gsplus.conf", 0
 };
 
 int g_highest_smartport_unit = -1;
