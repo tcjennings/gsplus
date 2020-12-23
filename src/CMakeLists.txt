@@ -72,7 +72,13 @@ option(WITH_RAWNET "Enable Uthernet emulation" OFF)
 option(WITH_ATBRIDGE "Enable AT Bridge" OFF)
 option(WITH_BACKTRACE "Enable PC Backtracing" OFF)
 option(WITH_STATIC "Enable static link" OFF)
+option(WITH_BUNDLE "Enable OS X Application Bundling" ON)
 set(READLINE "AUTO" CACHE STRING "Readline library (AUTO, NONE, READLINE, LIBEDIT)")
+
+if(NOT WITH_BUNDLE)
+	set(CMAKE_MACOSX_BUNDLE OFF)
+	set(OSX_BUNDLE OFF)
+endif()
 
 set(CMAKE_REQUIRED_INCLUDES string.h)
 check_function_exists(strcasecmp HAVE_STRCASECMP)
@@ -83,6 +89,7 @@ configure_file(string_extra.h.in string_extra.h)
 configure_file(version.h.in version.h)
 configure_file(version.txt.in version.txt)
 configure_file(assets/control.in assets/control)
+configure_file(search_paths.h.in search_paths.h @ONLY)
 
 set(generated_headers 8inst_c.h 16inst_c.h 8inst_s.h 16inst_s.h size_c.h size_s.h 8size_s.h 16size_s.h)
 add_custom_command(
@@ -94,7 +101,6 @@ add_custom_command(
 	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/instable.h
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
-
 
 add_custom_command(
 	OUTPUT size_c.h size_s.h 8size_s.h 16size_s.h
@@ -113,7 +119,6 @@ if (WITH_STATIC)
 		link_libraries(-static)
 	endif()
 endif()
-
 
 add_executable(to_pro to_pro.c)
 #add_executable(partls partls.c)
@@ -142,36 +147,15 @@ else()
 	set(host_fst_code host_common.c host_mli.c host_fst.c unix_host_common.c)
 endif()
 
-set(CMAKE_OSX_DEPLOYMENT_TARGET "10.9" CACHE STRING "" FORCE)
-
-# https://cmake.org/cmake/help/latest/prop_tgt/MACOSX_BUNDLE_INFO_PLIST.html
-set(MACOSX_BUNDLE_INFO_STRING "${PROJECT_VERSION}, Copyright 2020 Dagen Brock")
-set(MACOSX_BUNDLE_COPYRIGHT "Copyright 2020 Dagen Brock")
-set(MACOSX_BUNDLE_LONG_VERSION_STRING ${PROJECT_VERSION})
-set(MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION})
-set(MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION})
-set(MACOSX_BUNDLE_ICON_FILE gsp-icons.icns)
-set(MACOSX_BUNDLE_GUI_IDENTIFIER com.dagenbrock.gsplus)
-
-
-# https://cmake.org/Wiki/CMake:Bundles_And_Frameworks
-# OS X properties.
-add_executable(GSplus WIN32 MACOSX_BUNDLE
+set(SOURCE_FILES
 	adb.c clock.c config.c engine_c.c scc.c iwm.c
 	joystick_driver.c moremem.c paddles.c parallel.c printer.cpp sim65816.c
 	smartport.c sound.c sound_driver.c video.c scc_socket_driver.c glog.c
 	imagewriter.cpp scc_imagewriter.c scc_llap.c options.c
-
-	string_extra.c
-	dis.c
-	debug.c
-	#$<$<BOOL:${WITH_DEBUGGER}>:debug.c>
-
-	$<$<BOOL:${WITH_HOST_FST}>:${host_fst_code}>
+	string_extra.c dis.c debug.c
 	${driver_code}
 	${generated_headers}
-
-
+	$<$<BOOL:${WITH_HOST_FST}>:${host_fst_code}>
 	$<$<BOOL:${WIN32}>:scc_windriver.c>
 	$<$<BOOL:${WIN32}>:win32.rc>
 	$<$<BOOL:${APPLE}>:assets/config.txt>
@@ -181,32 +165,31 @@ add_executable(GSplus WIN32 MACOSX_BUNDLE
 	$<$<BOOL:${APPLE}>:fix_mac_menu.m>
 )
 
+if (WITH_BUNDLE)
+	# https://cmake.org/cmake/help/latest/prop_tgt/MACOSX_BUNDLE_INFO_PLIST.html
+	set(MACOSX_BUNDLE_INFO_STRING "${PROJECT_VERSION}, Copyright 2020 Dagen Brock")
+	set(MACOSX_BUNDLE_COPYRIGHT "Copyright 2020 Dagen Brock")
+	set(MACOSX_BUNDLE_LONG_VERSION_STRING ${PROJECT_VERSION})
+	set(MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION})
+	set(MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION})
+	set(MACOSX_BUNDLE_ICON_FILE gsp-icons.icns)
+	set(MACOSX_BUNDLE_GUI_IDENTIFIER com.dagenbrock.gsplus)
 
-SET_SOURCE_FILES_PROPERTIES(
-  assets/gsp-icons.icns
-  PROPERTIES
-  MACOSX_PACKAGE_LOCATION Resources
-)
+	# https://cmake.org/Wiki/CMake:Bundles_And_Frameworks
+	# OS X properties.
+	add_executable(GSplus WIN32 MACOSX_BUNDLE ${SOURCE_FILES})
 
-SET_SOURCE_FILES_PROPERTIES(
-  assets/GSBug.Templates
-  assets/NList.Data
-	assets/config.txt
-  PROPERTIES
-  MACOSX_PACKAGE_LOCATION Resources
-)
-
-
-if(APPLE)
-	add_custom_command(TARGET GSplus POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E copy_if_different
-		"${CMAKE_CURRENT_BINARY_DIR}/rawnet/vmnet_helper"
-		"${CMAKE_CURRENT_BINARY_DIR}/GSplus.app/Contents/MacOS/vmnet_helper"
-		)
-	add_dependencies(GSplus vmnet_helper)
+	SET_SOURCE_FILES_PROPERTIES(
+		assets/gsp-icons.icns
+		assets/GSBug.Templates
+		assets/NList.Data
+		assets/config.txt
+		PROPERTIES
+		MACOSX_PACKAGE_LOCATION Resources
+	)
+else()
+	add_executable(GSplus WIN32 ${SOURCE_FILES})
 endif()
-# SET_SOURCE_FILES_PROPERTIES(vmnet_helper PROPERTIES MACOSX_PACKAGE_LOCATION MacOS)
-
 
 if (WITH_RAWNET)
 	target_link_libraries(GSplus rawnet)
@@ -227,10 +210,6 @@ if (DRIVER MATCHES "SDL")
 	target_compile_options(GSplus PUBLIC ${SDL2_CFLAGS} ${FREETYPE2_CFLAGS}  -DHAVE_SDL)
 endif()
 
-if (APPLE)
-	target_link_libraries(GSplus "-framework Cocoa")
-endif()
-
 if (TOGGLE_STATUS)
 	target_compile_definitions(GSplus PUBLIC TOGGLE_STATUS)
 endif()
@@ -243,25 +222,33 @@ if (WITH_DEBUGGER)
 	target_compile_definitions(GSplus PRIVATE GSPLUS_DEBUGGER)
 endif()
 
-
-
 #if (APPLE AND DRIVER MATCHES "SDL")
 #	target_compile_options(GSplus PRIVATE -F${CMAKE_CURRENT_SOURCE_DIR} )
 #	target_link_libraries(GSplus -F${CMAKE_CURRENT_SOURCE_DIR} "-framework SDL2" -Wl,-rpath,@executable_path/../Frameworks)
 #endif()
 
-
 if (APPLE)
-	add_custom_target(bundle
-		DEPENDS GSplus
-		COMMAND dylibbundler -od -b -x GSplus.app/Contents/MacOS/GSplus -d GSplus.app/Contents/libs
-		COMMENT bundling libraries...
-	)
-	add_custom_target(setuid
-		COMMAND sudo chown root GSplus.app/Contents/MacOS/vmnet_helper
-		COMMAND sudo chmod +s GSplus.app/Contents/MacOS/vmnet_helper
-		USES_TERMINAL)
-	add_dependencies(setuid vmnet_helper)
+	add_dependencies(GSplus vmnet_helper)
+	target_link_libraries(GSplus "-framework Cocoa")
+    if (WITH_BUNDLE)
+		add_custom_command(TARGET GSplus POST_BUILD
+			COMMAND ${CMAKE_COMMAND} -E copy_if_different
+			"${CMAKE_CURRENT_BINARY_DIR}/rawnet/vmnet_helper"
+			"${CMAKE_CURRENT_BINARY_DIR}/GSplus.app/Contents/MacOS/vmnet_helper"
+			)
+		add_custom_target(bundle
+			DEPENDS GSplus
+			COMMAND dylibbundler -od -b -x GSplus.app/Contents/MacOS/GSplus -d GSplus.app/Contents/libs
+			COMMENT bundling libraries...
+		)
+		add_custom_target(setuid
+			COMMAND sudo chown root GSplus.app/Contents/MacOS/vmnet_helper
+			COMMAND sudo chmod +s GSplus.app/Contents/MacOS/vmnet_helper
+			USES_TERMINAL)
+		add_dependencies(setuid vmnet_helper)
+	else()
+		install(TARGETS GSplus DESTINATION bin)
+		install(TARGETS vmnet_helper PERMISSIONS SETUID DESTINATION bin)
+		install(FILES assets/config.txt TYPE SYSCONF)
+	endif()
 endif()
-
-configure_file(search_paths.h.in search_paths.h)
